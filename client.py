@@ -6,20 +6,16 @@ import sys
 from urllib.parse import urlparse
 from packet import Packet
 
-HEADER = 64
-PORT = 666
 FORMAT = 'utf-8'
-SERVER = '10.0.0.120'
-ADDR = (SERVER, PORT)
 DESCRIPTION = '\nhttpc is a curl-like application but supports HTTP protocol only.\n'
 FILE_START = '<START>'
 FILE_END = '<END>'
 
-def run_client1(commands, args):
-    server_addr = args.routerhost
-    server_port = args.routerport
-    router_addr = args.serverhost
-    router_port = args.serverport
+def run_client(commands, args):
+    server_addr = args.serverhost
+    server_port = args.serverport
+    router_addr = args.routerhost
+    router_port = args.routerport
 
     peer_ip = ipaddress.ip_address(socket.gethostbyname(server_addr))
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -106,4 +102,4 @@ else:
     args.d = FILE_START + str(args.d) + FILE_END
 
 #print(args)
-run_client1(str(args), args)
+run_client(str(args), args)
