@@ -10,8 +10,8 @@
 - httpc post -h Content-Type:application/json -d '{"Assignment": 1}' http://httpbin.org/post
 - httpc post -h Content-Type:application/json -f 'local/http_body1.txt' http://httpbin.org/post
 
-- alias httpc='python /c/Users/break/Desktop/http_server/client.py'
-- alias httpfs='python /c/Users/break/Desktop/http_server/client_file_system.py'
+- alias httpc='python /c/Users/break/Desktop/unreliable_communication/client.py'
+- alias httpfs='python /c/Users/break/Desktop/unreliable_communication/client_file_system.py'
 
 ## Dummy request for 301 redirect
 
@@ -27,3 +27,14 @@
 - httpfs get -v -d 'local/http_body1.txt'
 - httpfs post -d 'test.txt' --body 'my name is not JoJo'
 - httpfs post -d '../../test.txt' --body 'my name is not JoJo'
+
+## Unreliable Communication
+
+Run Server
+
+- python server.py --port 8007
+
+Run Client
+
+- httpc help --routerhost localhost --routerport 3000 --serverhost localhost --serverport 8007
+- httpc get 'http://httpbin.org/get?course=networking&assignment=1%27'
