@@ -1,8 +1,11 @@
 import os
 import socket
 import threading
+import argparse
+
 from urllib.parse import urlparse
 from datetime import datetime
+from packet import Packet
 
 PORT = 666
 SERVER = ''
@@ -12,8 +15,6 @@ FILE_START = '<START>'
 FILE_END = '<END>'
 ERROR_MSG = '301 Moved Permanently'
 
-HOST_KEY = 'host'
-PORT_KEY = 'port'
 V_KEY = 'v'
 H_KEY = 'h'
 D_KEY = 'd'
@@ -76,8 +77,10 @@ def strToDict(str):
                 paramdict[pair[0]] = http_body
             else:
                 paramdict[pair[0]] = pair[1]
-        else:
-            paramdict[HOST_KEY] = param[param.index('=')+1: len(param)]
+        # else:
+        #     paramdict[HOST_KEY] = param[param.index('=')+1: len(param)]
+        #     print(paramdict)
+        #     print(param)
             
     return paramdict
 
@@ -104,17 +107,14 @@ def getResponseBody(response):
 def getHttpcResponse(commands, params):
     url = ''
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    if len(params[HOST_KEY]) != 0:
-        url = urlparse(params[HOST_KEY])
-    else:
-        try:
-          url = urlparse(commands[len(commands) - 1])
-        except Exception:
-            return "Invalid Commands."
+    try:
+        url = urlparse(commands[len(commands) - 1])
+    except Exception:
+        return "Invalid Commands."
     
     url_path = trimURL(url.netloc)
     url_path = socket.gethostbyname(url_path)
-    conn.connect((url_path, int(params[PORT_KEY])))
+    conn.connect((url_path, int(80)))
 
     if(commands[0] == 'get'):
         request = "GET {} HTTP/1.1\r\nHost:{}\r\n\r\n"
@@ -283,37 +283,44 @@ def analyze_args(commands, params, debugMsg):
     return response
     
 
-def handle_client(conn, addr):
+def handle_client(conn, data, sender):
 
-    print(f"[NEW CONNECTION] {addr} connected.")
+    print(f"[NEW CONNECTION] {sender} connected.")
     try:
-        while True:
-            data = conn.recv(1024)
-            if data:
+        p = Packet.from_bytes(data)
+        print("Router: ", sender)
+        print("Packet: ", p)
+        #print("Payload: ", p.payload.decode("utf-8"))
+        data = p.payload
+        if data:
                 params = strToDict(data.decode(FORMAT))
                 debugMsg = '\n ##### DEBUGGING MESSAGE ##### \n This is the params received: \n' + str(params)
                 commands = commandsToArr(data.decode(FORMAT))
                 debugMsg = debugMsg + '\n this is the commands received: \n' + str(commands) + '\n'
                 msg = analyze_args(commands, params, debugMsg)
-                conn.sendall(msg.encode(FORMAT))
-    finally:
-        conn.close()
 
-def start():
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn.sendto(p.to_bytes(msg.encode(FORMAT)), sender)
+
+    except Exception as e:
+        print("Error: ", e)
+
+def start(port):
+    conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     
     try:
-        server.bind(ADDR)
-        server.listen()
+        conn.bind(('', port))
         print(f"[LISTENING] Server is listening on {SERVER}")
 
         while True:
-            conn, addr = server.accept()
-            thread = threading.Thread(target=handle_client, args=(conn, addr))
+            data, sender = conn.recvfrom(1024)
+            thread = threading.Thread(target=handle_client, args=(conn, data, sender))
             thread.start()
             print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
     finally:
-        server.close()
+        conn.close()
 
 print("[STARTING] server is starting...")
-start()
+parser = argparse.ArgumentParser()
+parser.add_argument("--port", help="echo server port", type=int, default=8007)
+args = parser.parse_args()
+start(args.port)
