@@ -12,6 +12,7 @@
 
 - alias httpc='python /c/Users/break/Desktop/unreliable_communication/client.py'
 - alias httpfs='python /c/Users/break/Desktop/unreliable_communication/client_file_system.py'
+  httpfs get -d 'asdf'
 
 ## Dummy request for 301 redirect
 
@@ -38,3 +39,7 @@ Run Client
 
 - httpc help --routerhost localhost --routerport 3000 --serverhost localhost --serverport 8007
 - httpc get 'http://httpbin.org/get?course=networking&assignment=1%27'
+
+Run Router
+
+- go run router.go --port=3000 --drop-rate=0.3 --max-delay=1ms --seed=1

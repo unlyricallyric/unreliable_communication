@@ -2,7 +2,7 @@ import ipaddress
 
 MIN_LEN = 11
 MAX_LEN = 1024
-
+PACKAGE_TYPE = ['SYN', 'SYN_ACK', 'ACK']
 
 class Packet:
     """
