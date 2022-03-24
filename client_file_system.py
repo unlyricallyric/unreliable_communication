@@ -3,7 +3,7 @@ import socket
 import argparse
 import ipaddress
 
-from packet import Packet
+from packet import Packet, PACKAGE_TYPE
 
 
 FORMAT = 'utf-8'
@@ -20,26 +20,43 @@ def run_client(commands, args):
     peer_ip = ipaddress.ip_address(socket.gethostbyname(server_addr))
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     timeout = 5
+    completed = False
+    while not completed:
+        requesting = True
+        try:
+            p = Packet(packet_type=0,
+                    seq_num=1,
+                    peer_ip_addr=peer_ip,
+                    peer_port=server_port,
+                    payload='')
+            conn.sendto(p.to_bytes(), (router_addr, router_port))
 
-    try:
-        p = Packet(packet_type=0,
-                   seq_num=1,
-                   peer_ip_addr=peer_ip,
-                   peer_port=server_port,
-                   payload=commands.encode("utf-8"))
-        conn.sendto(p.to_bytes(), (router_addr, router_port))
+            conn.settimeout(timeout)
+            while requesting:
+                print('Waiting for a response')
+                response, sender = conn.recvfrom(1024)
+                if not response:
+                    print('no data found')
+                    break
+                response_p = Packet.from_bytes(response)
+                print('Package Type: ' + PACKAGE_TYPE[response_p.packet_type])
+                if (PACKAGE_TYPE[response_p.packet_type] == 'SYN_ACK'):
+                    new_p = Packet(packet_type=2,
+                        seq_num=1,
+                        peer_ip_addr=peer_ip,
+                        peer_port=server_port,
+                        payload=commands.encode("utf-8"))
+                    conn.sendto(new_p.to_bytes(), (router_addr, router_port))
+                elif (PACKAGE_TYPE[response_p.packet_type] == 'ACK'):
+                    print('Payload: ' + response_p.payload.decode("utf-8"))
+                    completed = True
+                    requesting = False
+                else:
+                    requesting = False
 
-        conn.settimeout(timeout)
-        print('Waiting for a response')
-        response, sender = conn.recvfrom(1024)
-        p = Packet.from_bytes(response)
-        print('Router: ', sender)
-        print('Payload: ' + p.payload.decode("utf-8"))
-
-    except socket.timeout:
-        print('No response after {}s'.format(timeout))
-    finally:
-        conn.close()
+        except socket.timeout:
+            print('################ \n\n No response after {}s\nResending Request \n\n ################'.format(timeout))
+            print('Resending Request')
 
 
 parser = argparse.ArgumentParser(description=DESCRIPTION, add_help=False)
