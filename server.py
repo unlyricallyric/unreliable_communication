@@ -2,10 +2,11 @@ import os
 import socket
 import threading
 import argparse
+import time
 
 from urllib.parse import urlparse
 from datetime import datetime
-from packet import Packet
+from packet import Packet, PACKAGE_TYPE
 
 PORT = 666
 SERVER = ''
@@ -284,40 +285,58 @@ def analyze_args(commands, params, debugMsg):
     
 
 def handle_client(conn, data, sender):
-
-    print(f"[NEW CONNECTION] {sender} connected.")
+    msg = ''
+    print(f"\n[NEW CONNECTION] {sender} connected.")
     try:
         p = Packet.from_bytes(data)
         print("Router: ", sender)
-        print("Packet: ", p)
-        #print("Payload: ", p.payload.decode("utf-8"))
-        data = p.payload
-        if data:
-                params = strToDict(data.decode(FORMAT))
-                debugMsg = '\n ##### DEBUGGING MESSAGE ##### \n This is the params received: \n' + str(params)
-                commands = commandsToArr(data.decode(FORMAT))
-                debugMsg = debugMsg + '\n this is the commands received: \n' + str(commands) + '\n'
-                msg = analyze_args(commands, params, debugMsg)
-
-        conn.sendto(p.to_bytes(msg.encode(FORMAT)), sender)
+        print('Package Type: ' + PACKAGE_TYPE[p.packet_type])
+        if (PACKAGE_TYPE[p.packet_type] == 'SYN'):
+            new_packet = Packet(packet_type=1,
+                    seq_num=p.seq_num,
+                    peer_ip_addr=p.peer_ip_addr,
+                    peer_port=p.peer_port,
+                    payload=p.payload)
+            conn.sendto(new_packet.to_bytes(msg.encode(FORMAT)), sender)
+        elif (PACKAGE_TYPE[p.packet_type] == 'ACK'):
+            data = p.payload
+            if data:
+                    params = strToDict(data.decode(FORMAT))
+                    debugMsg = '\n ##### DEBUGGING MESSAGE ##### \n This is the params received: \n' + str(params)
+                    commands = commandsToArr(data.decode(FORMAT))
+                    debugMsg = debugMsg + '\n this is the commands received: \n' + str(commands) + '\n'
+                    msg = analyze_args(commands, params, debugMsg)
+                    new_packet = Packet(packet_type=2,
+                            seq_num=p.seq_num,
+                            peer_ip_addr=p.peer_ip_addr,
+                            peer_port=p.peer_port,
+                            payload=msg.encode(FORMAT))
+                    conn.sendto(new_packet.to_bytes(), sender)
+            else:
+                print('there is nothing in your packet')
+        time.sleep(2)
+        # conn.sendto(p.to_bytes('hello world1'.encode(FORMAT)), sender)
 
     except Exception as e:
         print("Error: ", e)
 
 def start(port):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    conn.bind(('', port))
+    print(f"[LISTENING] Server is listening on {SERVER}")
     
     try:
-        conn.bind(('', port))
-        print(f"[LISTENING] Server is listening on {SERVER}")
-
         while True:
             data, sender = conn.recvfrom(1024)
-            thread = threading.Thread(target=handle_client, args=(conn, data, sender))
-            thread.start()
-            print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
-    finally:
-        conn.close()
+            # thread = threading.Thread(target=handle_client, args=(conn, data, sender))
+            # thread.start()
+            handle_client(conn, data, sender)
+            #print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+            print('connection established!')
+    except Exception as e:
+        print("Error: ", e)
+    # finally:
+    #     conn.close()
 
 print("[STARTING] server is starting...")
 parser = argparse.ArgumentParser()
