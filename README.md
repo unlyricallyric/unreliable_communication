@@ -37,9 +37,13 @@ Run Server
 
 Run Client
 
-- httpc help --routerhost localhost --routerport 3000 --serverhost localhost --serverport 8007
-- httpc get 'http://httpbin.org/get?course=networking&assignment=1%27'
+- httpfs get -d 'asdf'
+- httpfs get -d 'local'
+- httpfs get -d 'local/http_body1.txt'
+- httpfs get -v -d 'local/http_body1.txt'
+- httpfs post -d 'test.txt' --body 'my name is not JoJo'
+- httpfs post -d '../../test.txt' --body 'my name is not JoJo'
 
 Run Router
 
-- go run router.go --port=3000 --drop-rate=0.3 --max-delay=1ms --seed=1
+- go run router.go --port=3000 --drop-rate=0.2 --max-delay=10ms --seed=1

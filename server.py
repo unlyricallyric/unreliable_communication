@@ -328,10 +328,10 @@ def start(port):
     try:
         while True:
             data, sender = conn.recvfrom(1024)
-            # thread = threading.Thread(target=handle_client, args=(conn, data, sender))
-            # thread.start()
-            handle_client(conn, data, sender)
-            #print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+            thread = threading.Thread(target=handle_client, args=(conn, data, sender))
+            thread.start()
+            #handle_client(conn, data, sender)
+            print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
             print('connection established!')
     except Exception as e:
         print("Error: ", e)
